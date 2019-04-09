@@ -62,3 +62,12 @@ Benchmark have 9 command line arguments.
     kernel_tensor_format - input tensor data format (only if you set 0 for all_formats)
         values: NCHW, NHWC, NCHW_VECT_C
 
+Example with input formats:
+```shell
+$ ./bin/benchmark conv_example.txt fp32 0 0 100 NHWC NHWC NHWC
+```
+Example with all formats:
+```shell
+$ ./bin/benchmark conv_example.txt fp32 1 0 1000
+```
+#Result:
