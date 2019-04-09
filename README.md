@@ -70,4 +70,55 @@ Example with all formats:
 ```shell
 $ ./bin/benchmark conv_example.txt fp32 1 0 1000
 ```
-#Result:
+Result
+------
+As a result you have benchmark_result.txt file where you can see result of benchmark.
+```shell
+$ ./bin/benchmark conv_example.txt fp32 0 0 100 NHWC NHWC NHWC
+```
+        // input_format output_format filter_format W H C N K S R pad_w pad_h stride_w stride_h out_w out_h input_stride_w input_stride_h filter_stride_w filter_stride_h
+        // ALGO STATUS TIME WORKSPACE
+        
+        NHWC NHWC NHWC 35 35 192 64 64 1 1 0 0 1 1 35 35 1 1 1 1
+        FWD_GEMM                     n/a
+        FWD_IMPLICIT_GEMM            success 11823.3 0
+        FWD_PRECOMP_GEMM             success 3606.28 7356
+        FWD_DIRECT                   n/a
+        FWD_FFT                      n/a
+        FWD_FFT_TILING               n/a
+        FWD_WINOGRAD                 n/a
+        FWD_WINOGRAD_NONFUSED        n/a
+        BWD_FILTER_ALGO_0            success 6064.28 0
+        BWD_FILTER_ALGO_1            success 7660.23 96
+        BWD_FILTER_ALGO_3            n/a
+        BWD_FILTER_FFT               n/a
+        BWD FILTER FFT_TILING        n/a
+        BWD_DATA_ALGO_0              n/a
+        BWD_DATA_ALGO_1              success 10893.8 0
+        BWD_DATA_FFT                 n/a
+        BWD_DATA_FFT_TILING          n/a
+        BWD_DATA_WINOGRAD            n/a
+        BWD_DATA_WINOGRAD_NONFUSED   n/a
+
+
+        NHWC NHWC NHWC 35 35 256 32 48 1 1 0 0 1 1 35 35 1 1 1 1
+        FWD_GEMM                     n/a
+        FWD_IMPLICIT_GEMM            success 6477.93 0
+        FWD_PRECOMP_GEMM             success 2225.4 7356
+        FWD_DIRECT                   n/a
+        FWD_FFT                      n/a
+        FWD_FFT_TILING               n/a
+        FWD_WINOGRAD                 n/a
+        FWD_WINOGRAD_NONFUSED        n/a
+        BWD_FILTER_ALGO_0            success 3962.88 0
+        BWD_FILTER_ALGO_1            success 4988.61 128
+        BWD_FILTER_ALGO_3            n/a
+        BWD_FILTER_FFT               n/a
+        BWD FILTER FFT_TILING        n/a
+        BWD_DATA_ALGO_0              n/a
+        BWD_DATA_ALGO_1              success 5675.6 0
+        BWD_DATA_FFT                 n/a
+        BWD_DATA_FFT_TILING          n/a
+        BWD_DATA_WINOGRAD            n/a
+        BWD_DATA_WINOGRAD_NONFUSED   n/a
+        .....
