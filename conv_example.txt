@@ -1,0 +1,7 @@
+//W	H	C	N	K 	S(filter_W)	R(filter_H)	pad_w	pad_h	stride_w	stride_h	out_w	out_h	input_stride_w	input_stride_h	filter_stride_w	filter_stride_h
+56	56	256	16	64	1	1	0	0	1	1	56	56	1	1	1	1
+56	56	256	32	64	1	1	0	0	1	1	56	56	1	1	1	1
+56	56	256	64	64	1	1	0	0	1	1	56	56	1	1	1	1
+56	56	256	16	128	1	1	0	0	1	1	56	56	1	1	1	1
+56	56	256	32	128	1	1	0	0	1	1	56	56	1	1	1	1
+56	56	256	64	128	1	1	0	0	1	1	56	56	1	1	1	1
