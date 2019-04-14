@@ -9,6 +9,11 @@
 #include "helpers/cudnn_helper.h"
 #include "tensor.h"
 
+enum benchmarkOperationMode {
+    ONLY_WORKSPACE_SIZE_MODE = 0,
+    CALCULATION_AND_WORKSPACE_SIZE_MODE = 1,
+};
+
 enum benchmarkStatus {
     BENCHMARK_SUCCESS = 0,
     BENCHMARK_NOT_SUPPORTED = 1,
@@ -53,7 +58,7 @@ class Benchmark {
     Tensor<T> *dW;
     Tensor<T> *dX;
     const float alpha = 1, beta = 0;
-    bool only_workspace = false;
+    benchmarkOperationMode operation_mode;
 
     TensorDescriptor *inputTensorDescriptor;
     TensorDescriptor *outputTensorDescriptor;
@@ -79,6 +84,10 @@ class Benchmark {
 
     void backward_data_algorythms(uint32_t num_repeats);
 
+    void calculate_workspace_benchmark(uint32_t num_repeats);
+
+    void workspace_benchmark();
+
     void create_cudnn();
 
     void create_curand_generator();
@@ -89,11 +98,11 @@ public:
     std::vector<benchmarkBwdFilterResult> bwd_filter_result;
     std::vector<benchmarkBwdDataResult> bwd_data_result;
 
-    Benchmark(bool only_workspace);
+    Benchmark(benchmarkOperationMode operation_mode);
 
     void benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats);
 
-    static void run(std::string file_name, bool all_formats, bool only_workspace, uint32_t num_repeats, cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format, cudnnTensorFormat_t kernel_format);
+    static void run(std::string file_name, bool all_formats, benchmarkOperationMode operation_mode, uint32_t num_repeats, cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format, cudnnTensorFormat_t kernel_format);
 };
 
 #endif //BENCHMARK_BENCHMARK_H
