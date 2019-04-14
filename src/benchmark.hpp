@@ -78,11 +78,23 @@ class Benchmark {
 
     void backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t num_repeats);
 
+    void forward_workspace(cudnnConvolutionFwdAlgo_t algo);
+
+    void backward_filter_workspace(cudnnConvolutionBwdFilterAlgo_t algo);
+
+    void backward_data_workspace(cudnnConvolutionBwdDataAlgo_t);
+
     void forward_algorythms(uint32_t num_repeats);
 
     void backward_filter_algorythms(uint32_t num_repeats);
 
     void backward_data_algorythms(uint32_t num_repeats);
+
+    void forward_algorythms_workspace();
+
+    void backward_filter_algorythms_workspace();
+
+    void backward_data_algorythms_workspace();
 
     void calculate_workspace_benchmark(uint32_t num_repeats);
 

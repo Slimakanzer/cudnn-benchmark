@@ -263,6 +263,48 @@ void Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t nu
 }
 
 template<typename T>
+void Benchmark<T>::forward_workspace(cudnnConvolutionFwdAlgo_t algo) {
+    size_t workspace_size;
+    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
+    try {
+        workspace_size = fwd_workspace_size(algo);
+        *result = {0, workspace_size, BENCHMARK_SUCCESS};
+        fwd_result.push_back({algo, result});
+    } catch (std::exception &exception) {
+        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
+        fwd_result.push_back({algo, result});
+    }
+}
+
+template<typename T>
+void Benchmark<T>::backward_filter_workspace(cudnnConvolutionBwdFilterAlgo_t algo) {
+    size_t workspace_size;
+    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
+    try {
+        workspace_size = bwd_filter_workspace_size(algo);
+        *result = {0, workspace_size, BENCHMARK_SUCCESS};
+        bwd_filter_result.push_back({algo, result});
+    } catch (std::exception &exception) {
+        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
+        bwd_filter_result.push_back({algo, result});
+    }
+}
+
+template<typename T>
+void Benchmark<T>::backward_data_workspace(cudnnConvolutionBwdDataAlgo_t algo) {
+    size_t workspace_size;
+    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
+    try {
+        workspace_size = bwd_data_workspace_size(algo);
+        *result = {0, workspace_size, BENCHMARK_SUCCESS};
+        bwd_data_result.push_back({algo, result});
+    } catch (std::exception &exception) {
+        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
+        bwd_data_result.push_back({algo, result});
+    }
+}
+
+template<typename T>
 void Benchmark<T>::forward_algorythms(uint32_t num_repeats) {
     forward(CUDNN_CONVOLUTION_FWD_ALGO_GEMM, num_repeats);
     forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM, num_repeats);
@@ -291,6 +333,37 @@ void Benchmark<T>::backward_data_algorythms(uint32_t num_repeats) {
     backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING, num_repeats);
     backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD, num_repeats);
     backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED, num_repeats);
+}
+
+template<typename T>
+void Benchmark<T>::forward_algorythms_workspace() {
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_GEMM);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
+}
+
+template<typename T>
+void Benchmark<T>::backward_filter_algorythms_workspace() {
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
+}
+
+template<typename T>
+void Benchmark<T>::backward_data_algorythms_workspace() {
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
 }
 
 template<typename T>
@@ -332,7 +405,9 @@ void Benchmark<T>::calculate_workspace_benchmark(uint32_t num_repeats) {
 
 template<typename T>
 void Benchmark<T>::workspace_benchmark() {
-
+    forward_algorythms_workspace();
+    backward_filter_algorythms_workspace();
+    backward_data_algorythms_workspace();
 }
 
 template<typename T>
