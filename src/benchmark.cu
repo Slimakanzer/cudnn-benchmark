@@ -20,10 +20,10 @@ void Benchmark<T>::create_curand_generator() {
 }
 
 template<typename T>
-Benchmark<T>::Benchmark(bool only_workspace) {
+Benchmark<T>::Benchmark(benchmarkOperationMode operation_mode) {
     create_cudnn();
     create_curand_generator();
-    this->only_workspace = only_workspace;
+    this->operation_mode = operation_mode;
 }
 
 template<typename T>
@@ -263,6 +263,48 @@ void Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t nu
 }
 
 template<typename T>
+void Benchmark<T>::forward_workspace(cudnnConvolutionFwdAlgo_t algo) {
+    size_t workspace_size;
+    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
+    try {
+        workspace_size = fwd_workspace_size(algo);
+        *result = {0, workspace_size, BENCHMARK_SUCCESS};
+        fwd_result.push_back({algo, result});
+    } catch (std::exception &exception) {
+        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
+        fwd_result.push_back({algo, result});
+    }
+}
+
+template<typename T>
+void Benchmark<T>::backward_filter_workspace(cudnnConvolutionBwdFilterAlgo_t algo) {
+    size_t workspace_size;
+    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
+    try {
+        workspace_size = bwd_filter_workspace_size(algo);
+        *result = {0, workspace_size, BENCHMARK_SUCCESS};
+        bwd_filter_result.push_back({algo, result});
+    } catch (std::exception &exception) {
+        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
+        bwd_filter_result.push_back({algo, result});
+    }
+}
+
+template<typename T>
+void Benchmark<T>::backward_data_workspace(cudnnConvolutionBwdDataAlgo_t algo) {
+    size_t workspace_size;
+    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
+    try {
+        workspace_size = bwd_data_workspace_size(algo);
+        *result = {0, workspace_size, BENCHMARK_SUCCESS};
+        bwd_data_result.push_back({algo, result});
+    } catch (std::exception &exception) {
+        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
+        bwd_data_result.push_back({algo, result});
+    }
+}
+
+template<typename T>
 void Benchmark<T>::forward_algorythms(uint32_t num_repeats) {
     forward(CUDNN_CONVOLUTION_FWD_ALGO_GEMM, num_repeats);
     forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM, num_repeats);
@@ -291,6 +333,81 @@ void Benchmark<T>::backward_data_algorythms(uint32_t num_repeats) {
     backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING, num_repeats);
     backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD, num_repeats);
     backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED, num_repeats);
+}
+
+template<typename T>
+void Benchmark<T>::forward_algorythms_workspace() {
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_GEMM);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
+    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
+}
+
+template<typename T>
+void Benchmark<T>::backward_filter_algorythms_workspace() {
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
+    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
+}
+
+template<typename T>
+void Benchmark<T>::backward_data_algorythms_workspace() {
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
+    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
+}
+
+template<typename T>
+void Benchmark<T>::calculate_workspace_benchmark(uint32_t num_repeats) {
+    assert(inputTensorDescriptor);
+    assert(outputTensorDescriptor);
+    assert(filterDescriptor);
+
+    auto formatInputTensor = inputTensorDescriptor->format();
+    auto formatOutputTensor = outputTensorDescriptor->format();
+    auto formatFilter = filterDescriptor->format();
+
+    inputTensor = new Tensor<T>(
+            {formatInputTensor.N, formatInputTensor.H, formatInputTensor.W, formatInputTensor.C});
+    outputTensor = new Tensor<T>(
+            {formatOutputTensor.N, formatOutputTensor.H, formatOutputTensor.W, formatOutputTensor.C});
+    kernelTensor = new Tensor<T>({formatFilter.N, formatFilter.H, formatFilter.W, formatFilter.C});
+
+    delta = new Tensor<T>(
+            {formatOutputTensor.N, formatOutputTensor.H, formatOutputTensor.W, formatOutputTensor.C});
+    dW = new Tensor<T>({formatFilter.N, formatFilter.H, formatFilter.W, formatFilter.C});
+    dX = new Tensor<T>({formatInputTensor.N, formatInputTensor.H, formatInputTensor.W, formatInputTensor.C});
+
+    inputTensor->rand(curand_gen);
+    kernelTensor->rand(curand_gen);
+    delta->rand(curand_gen);
+
+    forward_algorythms(num_repeats);
+    backward_filter_algorythms(num_repeats);
+    backward_data_algorythms(num_repeats);
+
+    delete inputTensor;
+    delete outputTensor;
+    delete kernelTensor;
+    delete delta;
+    delete dW;
+    delete dX;
+}
+
+template<typename T>
+void Benchmark<T>::workspace_benchmark() {
+    forward_algorythms_workspace();
+    backward_filter_algorythms_workspace();
+    backward_data_algorythms_workspace();
 }
 
 template<typename T>
@@ -359,33 +476,13 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
 
     cudnnSetConvolutionMathType(convolutionDescriptor_, CUDNN_TENSOR_OP_MATH);
 
-    if (!only_workspace) {
-
-        inputTensor = new Tensor<T>(
-                {formatInputTensor.N, formatInputTensor.H, formatInputTensor.W, formatInputTensor.C});
-        outputTensor = new Tensor<T>(
-                {formatOutputTensor.N, formatOutputTensor.H, formatOutputTensor.W, formatOutputTensor.C});
-        kernelTensor = new Tensor<T>({formatFilter.N, formatFilter.H, formatFilter.W, formatFilter.C});
-
-        delta = new Tensor<T>(
-                {formatOutputTensor.N, formatOutputTensor.H, formatOutputTensor.W, formatOutputTensor.C});
-        dW = new Tensor<T>({formatFilter.N, formatFilter.H, formatFilter.W, formatFilter.C});
-        dX = new Tensor<T>({formatInputTensor.N, formatInputTensor.H, formatInputTensor.W, formatInputTensor.C});
-
-        inputTensor->rand(curand_gen);
-        kernelTensor->rand(curand_gen);
-        delta->rand(curand_gen);
-
-        forward_algorythms(num_repeats);
-        backward_filter_algorythms(num_repeats);
-        backward_data_algorythms(num_repeats);
-
-        delete inputTensor;
-        delete outputTensor;
-        delete kernelTensor;
-        delete delta;
-        delete dW;
-        delete dX;
+    switch (operation_mode) {
+        case CALCULATION_AND_WORKSPACE_SIZE_MODE:
+            calculate_workspace_benchmark(num_repeats);
+            break;
+        case ONLY_WORKSPACE_SIZE_MODE:
+            workspace_benchmark();
+            break;
     }
 
     delete inputTensorDescriptor;
@@ -396,14 +493,14 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
 }
 
 template<typename T>
-void Benchmark<T>::run(std::string file_name, bool all_formats, bool only_workspace, uint32_t num_repeats,
+void Benchmark<T>::run(std::string file_name, bool all_formats, benchmarkOperationMode operation_mode, uint32_t num_repeats,
                        cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format,
                        cudnnTensorFormat_t kernel_format) {
 
     auto benchmark_rows = parser::readInputDataFile(file_name);
     parser::openOutFile();
 
-    Benchmark<T> benchmark(only_workspace);
+    Benchmark<T> benchmark(operation_mode);
     for (auto row : benchmark_rows) {
         if (!all_formats){
             row.inputTensorFormat = input_format;
@@ -472,7 +569,7 @@ int main(int argc, char **argv) {
     std::string file_name = argv[1];
     std::string data_type_name = argv[2];
     bool all_formats = static_cast<bool>(std::stoi(argv[3]));
-    bool only_workspace = static_cast<bool>(std::stoi(argv[4]));
+    benchmarkOperationMode operation_mode = static_cast<benchmarkOperationMode>(std::stoi(argv[4]));
     uint32_t num_repeats = static_cast<uint32_t>(std::stoi(argv[5]));
 
     if ( !all_formats && (argc < 9) ) {
@@ -492,11 +589,11 @@ int main(int argc, char **argv) {
     }
 
     if (data_type_name.compare("fp16") == 0)
-        Benchmark<uint32_t>::run(file_name, all_formats, only_workspace, num_repeats, input_format, output_format, kernel_format);
+        Benchmark<uint32_t>::run(file_name, all_formats, operation_mode, num_repeats, input_format, output_format, kernel_format);
     else if (data_type_name.compare("fp32") == 0)
-        Benchmark<float>::run(file_name, all_formats, only_workspace, num_repeats, input_format, output_format, kernel_format);
+        Benchmark<float>::run(file_name, all_formats, operation_mode, num_repeats, input_format, output_format, kernel_format);
     else if (data_type_name.compare("fp64") == 0)
-        Benchmark<double>::run(file_name, all_formats, only_workspace, num_repeats, input_format, output_format, kernel_format);
+        Benchmark<double>::run(file_name, all_formats, operation_mode, num_repeats, input_format, output_format, kernel_format);
     else throw new std::runtime_error("Data type not supported");
 
     return 0;
