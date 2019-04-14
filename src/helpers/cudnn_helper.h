@@ -109,7 +109,7 @@ std::string get_data_format_name(cudnnTensorFormat_t format) {
 cudnnTensorFormat_t get_data_format_by_name(std::string name) {
     if (name.compare("NCHW") == 0) return CUDNN_TENSOR_NCHW;
     else if (name.compare("NHWC") == 0) return CUDNN_TENSOR_NHWC;
-    else if (name.compare("NCHW_BECT_C") == 0) return CUDNN_TENSOR_NCHW_VECT_C;
+    else if (name.compare("NCHW_VECT_C") == 0) return CUDNN_TENSOR_NCHW_VECT_C;
     else return CUDNN_TENSOR_NCHW;
 }
 
