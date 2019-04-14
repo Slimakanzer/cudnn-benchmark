@@ -52,8 +52,10 @@ Benchmark have 9 command line arguments.
         valuses: fp16, fp32, fp64
     all_formats - use all formats or not
         valuse: 0, 1
-    only_workspace - meter only workspace size or not
-        values: 0, 1
+    operation_mode - benchmark operation mode
+        values:
+            0 - compute only workspace size
+            1 - compute calculation speed and workspace size
     num_repeats - number of repeats for one convolution's algorithm
     input_tensor_format - input tensor data format (only if you set 0 for all_formats)
         values: NCHW, NHWC, NCHW_VECT_C
