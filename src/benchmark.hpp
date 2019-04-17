@@ -58,7 +58,6 @@ class Benchmark {
     Tensor<T> *dW;
     Tensor<T> *dX;
     const float alpha = 1, beta = 0;
-    benchmarkOperationMode operation_mode;
 
     TensorDescriptor *inputTensorDescriptor;
     TensorDescriptor *outputTensorDescriptor;
@@ -105,6 +104,7 @@ class Benchmark {
     void create_curand_generator();
 
 public:
+    benchmarkOperationMode operation_mode;
     benchmarkRow *benchmark_row;
     std::vector<benchmarkFwdResult> fwd_result;
     std::vector<benchmarkBwdFilterResult> bwd_filter_result;

@@ -121,9 +121,8 @@ namespace parser {
     void openOutFile() {
         outfile.open(OUT_FILE_NAME, std::ios::app);
         outfile
-                << "// input_format output_format filter_format W H C N K S R pad_w pad_h stride_w stride_h out_w out_h input_stride_w input_stride_h filter_stride_w filter_stride_h"
+                << "\tinput_format\toutput_format\tfilter_format\tW\tH\tC\tN\tK\tS\tR\tpad_w\tpad_h\tstride_w\tstride_h\tout_w\tout_h\tinput_stride_w\tinput_stride_h\tfilter_stride_w\tfilter_stride_h"
                 << std::endl;
-        outfile << "// ALGO STATUS TIME WORKSPACE" << std::endl;
     }
 
     void closeOutFile() {
@@ -131,68 +130,148 @@ namespace parser {
     }
 
     template<typename T>
-    void writeBenchmarkResult(Benchmark<T> &benchmark) {
+    void writeBenchmarkCalculateMode(Benchmark<T> &benchmark) {
         outfile << std::endl;
         auto row = benchmark.benchmark_row;
-        outfile << get_data_format_name(row->inputTensorFormat) << " " << get_data_format_name(row->outputTensorFormat)
-                << " " << get_data_format_name(row->filterFormat) << " " << row->w << " " << row->h << " " << row->c
-                << " " << row->n << " " << row->k << " " << row->s << " " << row->r << " " << row->pad_w
-                << " " << row->pad_h << " " << row->stride_w << " " << row->stride_h
-                << " " << row->out_w << " " << row->out_h << " " << row->input_stride_w << " " << row->input_stride_h
-                << " " << row->filter_stride_w << " " << row->filter_stride_h << std::endl;
+        outfile << "\t" << get_data_format_name(row->inputTensorFormat) << "\t" << get_data_format_name(row->outputTensorFormat)
+                << "\t" << get_data_format_name(row->filterFormat) << "\t" << row->w << "\t" << row->h << "\t" << row->c
+                << "\t" << row->n << "\t" << row->k << "\t" << row->s << "\t" << row->r << "\t" << row->pad_w
+                << "\t" << row->pad_h << "\t" << row->stride_w << "\t" << row->stride_h
+                << "\t" << row->out_w << "\t" << row->out_h << "\t" << row->input_stride_w << "\t"
+                << row->input_stride_h
+                << "\t" << row->filter_stride_w << "\t" << row->filter_stride_h << std::endl;
 
         for (auto fwd_result : benchmark.fwd_result) {
-            outfile << get_fwd_algo_name(fwd_result.algo) << " ";
+            outfile << get_fwd_algo_name(fwd_result.algo) << "\t";
 
             switch (fwd_result.result->status) {
                 case BENCHMARK_SUCCESS:
-                    outfile << "success " << fwd_result.result->time << " " << fwd_result.result->workspace_size
+                    outfile << fwd_result.result->time << "\t" << fwd_result.result->workspace_size
                             << std::endl;
                     break;
                 case BENCHMARK_NOT_SUPPORTED:
                     outfile << "n/a" << std::endl;
                     break;
                 case BENCHMARK_ERROR:
-                    outfile << "error" << std::endl;
+                    outfile << "-" << std::endl;
                     break;
             }
         }
 
         for (auto bwd_filter : benchmark.bwd_filter_result) {
-            outfile << get_bwd_filter_algo_name(bwd_filter.algo) << " ";
+            outfile << get_bwd_filter_algo_name(bwd_filter.algo) << "\t";
 
             switch (bwd_filter.result->status) {
                 case BENCHMARK_SUCCESS:
-                    outfile << "success " << bwd_filter.result->time << " " << bwd_filter.result->workspace_size
+                    outfile << bwd_filter.result->time << "\t" << bwd_filter.result->workspace_size
                             << std::endl;
                     break;
                 case BENCHMARK_NOT_SUPPORTED:
                     outfile << "n/a" << std::endl;
                     break;
                 case BENCHMARK_ERROR:
-                    outfile << "error" << std::endl;
+                    outfile << "-" << std::endl;
                     break;
             }
         }
 
         for (auto bwd_data : benchmark.bwd_data_result) {
-            outfile << get_bwd_data_algo_name(bwd_data.algo) << " ";
+            outfile << get_bwd_data_algo_name(bwd_data.algo) << "\t";
 
             switch (bwd_data.result->status) {
                 case BENCHMARK_SUCCESS:
-                    outfile << "success " << bwd_data.result->time << " " << bwd_data.result->workspace_size
+                    outfile << bwd_data.result->time << "\t" << bwd_data.result->workspace_size
                             << std::endl;
                     break;
                 case BENCHMARK_NOT_SUPPORTED:
                     outfile << "n/a" << std::endl;
                     break;
                 case BENCHMARK_ERROR:
-                    outfile << "error" << std::endl;
+                    outfile << "-" << std::endl;
                     break;
             }
         }
 
         outfile << std::endl;
+    }
+
+    template<typename T>
+    void writeBenchmarkOnlyWorkspaceSizeMode(Benchmark<T> &benchmark) {
+        outfile << std::endl;
+        auto row = benchmark.benchmark_row;
+
+        outfile << "\t" << get_data_format_name(row->inputTensorFormat) << "\t" << get_data_format_name(row->outputTensorFormat)
+                << "\t" << get_data_format_name(row->filterFormat) << "\t" << row->w << "\t" << row->h << "\t" << row->c
+                << "\t" << row->n << "\t" << row->k << "\t" << row->s << "\t" << row->r << "\t" << row->pad_w
+                << "\t" << row->pad_h << "\t" << row->stride_w << "\t" << row->stride_h
+                << "\t" << row->out_w << "\t" << row->out_h << "\t" << row->input_stride_w << "\t"
+                << row->input_stride_h
+                << "\t" << row->filter_stride_w << "\t" << row->filter_stride_h << std::endl;
+
+        for (auto fwd_result : benchmark.fwd_result) {
+            outfile << get_fwd_algo_name(fwd_result.algo) << "\t";
+
+            switch (fwd_result.result->status) {
+                case BENCHMARK_SUCCESS:
+                    outfile << fwd_result.result->workspace_size
+                            << std::endl;
+                    break;
+                case BENCHMARK_NOT_SUPPORTED:
+                    outfile << "n/a" << std::endl;
+                    break;
+                case BENCHMARK_ERROR:
+                    outfile << "-" << std::endl;
+                    break;
+            }
+        }
+
+        for (auto bwd_filter : benchmark.bwd_filter_result) {
+            outfile << get_bwd_filter_algo_name(bwd_filter.algo) << "\t";
+
+            switch (bwd_filter.result->status) {
+                case BENCHMARK_SUCCESS:
+                    outfile << bwd_filter.result->workspace_size
+                            << std::endl;
+                    break;
+                case BENCHMARK_NOT_SUPPORTED:
+                    outfile << "n/a" << std::endl;
+                    break;
+                case BENCHMARK_ERROR:
+                    outfile << "-" << std::endl;
+                    break;
+            }
+        }
+
+        for (auto bwd_data : benchmark.bwd_data_result) {
+            outfile << get_bwd_data_algo_name(bwd_data.algo) << "\t";
+
+            switch (bwd_data.result->status) {
+                case BENCHMARK_SUCCESS:
+                    outfile << bwd_data.result->workspace_size
+                            << std::endl;
+                    break;
+                case BENCHMARK_NOT_SUPPORTED:
+                    outfile << "n/a" << std::endl;
+                    break;
+                case BENCHMARK_ERROR:
+                    outfile << "-" << std::endl;
+                    break;
+            }
+        }
+
+        outfile << std::endl;
+    }
+
+    template<typename T>
+    void writeBenchmarkResult(Benchmark<T> &benchmark) {
+        switch (benchmark.operation_mode) {
+            case CALCULATION_AND_WORKSPACE_SIZE_MODE:
+                writeBenchmarkCalculateMode(benchmark);
+                break;
+            case ONLY_WORKSPACE_SIZE_MODE:
+                writeBenchmarkOnlyWorkspaceSizeMode(benchmark);
+                break;
+        }
     }
 }
 
