@@ -48,6 +48,7 @@ Starting
 Benchmark have 9 command line arguments.
 
     file_name - name of file with convolution cases [example](https://github.com/Slimakanzer/cudnn-benchmark/blob/master/conv_example.txt)
+    file_name_output - name of the output file with benchmark results
     data_type - data types 
         valuses: fp16, fp32, fp64
     all_formats - use all formats or not
