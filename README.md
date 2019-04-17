@@ -64,11 +64,11 @@ If `all_formats` is set to `0`, the following additional arguments must be speci
 
 Example with specific data formats:
 ```shell
-$ ./bin/benchmark conv_example.txt fp32 0 0 100 NHWC NHWC NHWC
+$ ./bin/benchmark conv_example.txt out_example.txt fp32 0 0 100 NHWC NHWC NHWC
 ```
 Example with all data formats:
 ```shell
-$ ./bin/benchmark conv_example.txt fp32 1 0 1000
+$ ./bin/benchmark conv_example.txt out_example.txt fp32 1 0 1000
 ```
 Obtaining results
 -----------------
