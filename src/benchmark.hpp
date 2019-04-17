@@ -20,12 +20,6 @@ enum benchmarkStatus {
     BENCHMARK_ERROR = 2
 };
 
-struct benchmarkRow {
-    int w, h, c, n, k, s, r, pad_w, pad_h, stride_w, stride_h, out_w, out_h, input_stride_w, input_stride_h, filter_stride_w, filter_stride_h;
-    cudnnTensorFormat_t inputTensorFormat = CUDNN_TENSOR_NCHW_VECT_C,
-            outputTensorFormat = CUDNN_TENSOR_NCHW_VECT_C,
-            filterFormat = CUDNN_TENSOR_NCHW_VECT_C;
-};
 
 struct benchmarkResult {
     double time;
@@ -33,19 +27,34 @@ struct benchmarkResult {
     benchmarkStatus status;
 };
 
-struct benchmarkFwdResult {
-    cudnnConvolutionFwdAlgo_t algo;
-    benchmarkResult* result;
-};
+struct benchmarkRow {
+    int w, h, c, n, k, s, r, pad_w, pad_h, stride_w, stride_h, out_w, out_h, input_stride_w, input_stride_h, filter_stride_w, filter_stride_h;
+    cudnnTensorFormat_t
+            inputTensorFormat,
+            outputTensorFormat,
+            filterFormat;
+    benchmarkResult
+            CUDNN_CONVOLUTION_FWD_ALGO_GEMM,
+            CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
+            CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,
+            CUDNN_CONVOLUTION_FWD_ALGO_DIRECT,
+            CUDNN_CONVOLUTION_FWD_ALGO_FFT,
+            CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING,
+            CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD,
+            CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED,
 
-struct benchmarkBwdFilterResult {
-    cudnnConvolutionBwdFilterAlgo_t algo;
-    benchmarkResult* result;
-};
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0,
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1,
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3,
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT,
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING,
 
-struct benchmarkBwdDataResult {
-    cudnnConvolutionBwdDataAlgo_t algo;
-    benchmarkResult* result;
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_0,
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_1,
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT,
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING,
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD,
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
 };
 
 template<typename T>
@@ -58,7 +67,6 @@ class Benchmark {
     Tensor<T> *dW;
     Tensor<T> *dX;
     const float alpha = 1, beta = 0;
-    benchmarkOperationMode operation_mode;
 
     TensorDescriptor *inputTensorDescriptor;
     TensorDescriptor *outputTensorDescriptor;
@@ -72,17 +80,17 @@ class Benchmark {
 
     size_t bwd_data_workspace_size(cudnnConvolutionBwdDataAlgo_t algo);
 
-    void forward(cudnnConvolutionFwdAlgo_t algo, uint32_t num_repeats);
+    benchmarkResult forward(cudnnConvolutionFwdAlgo_t algo, uint32_t num_repeats);
 
-    void backward_filter(cudnnConvolutionBwdFilterAlgo_t algo, uint32_t num_repeats);
+    benchmarkResult backward_filter(cudnnConvolutionBwdFilterAlgo_t algo, uint32_t num_repeats);
 
-    void backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t num_repeats);
+    benchmarkResult backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t num_repeats);
 
-    void forward_workspace(cudnnConvolutionFwdAlgo_t algo);
+    benchmarkResult forward_workspace(cudnnConvolutionFwdAlgo_t algo);
 
-    void backward_filter_workspace(cudnnConvolutionBwdFilterAlgo_t algo);
+    benchmarkResult backward_filter_workspace(cudnnConvolutionBwdFilterAlgo_t algo);
 
-    void backward_data_workspace(cudnnConvolutionBwdDataAlgo_t);
+    benchmarkResult backward_data_workspace(cudnnConvolutionBwdDataAlgo_t);
 
     void forward_algorythms(uint32_t num_repeats);
 
@@ -105,16 +113,14 @@ class Benchmark {
     void create_curand_generator();
 
 public:
+    benchmarkOperationMode operation_mode;
     benchmarkRow *benchmark_row;
-    std::vector<benchmarkFwdResult> fwd_result;
-    std::vector<benchmarkBwdFilterResult> bwd_filter_result;
-    std::vector<benchmarkBwdDataResult> bwd_data_result;
 
     Benchmark(benchmarkOperationMode operation_mode);
 
     void benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats);
 
-    static void run(std::string file_name, bool all_formats, benchmarkOperationMode operation_mode, uint32_t num_repeats, cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format, cudnnTensorFormat_t kernel_format);
+    static void run(std::string file_name, std::string output_file_name, bool all_formats, benchmarkOperationMode operation_mode, uint32_t num_repeats, cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format, cudnnTensorFormat_t kernel_format);
 };
 
 #endif //BENCHMARK_BENCHMARK_H

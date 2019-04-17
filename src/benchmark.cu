@@ -83,19 +83,16 @@ size_t Benchmark<T>::bwd_data_workspace_size(cudnnConvolutionBwdDataAlgo_t algo)
 }
 
 template<typename T>
-void Benchmark<T>::forward(cudnnConvolutionFwdAlgo_t algo, uint32_t num_repeats) {
+benchmarkResult Benchmark<T>::forward(cudnnConvolutionFwdAlgo_t algo, uint32_t num_repeats) {
     assert(inputTensor);
     assert(outputTensor);
     assert(kernelTensor);
 
     size_t workspace_size;
-    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
     try {
         workspace_size = fwd_workspace_size(algo);
     } catch (std::exception &exception) {
-        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-        fwd_result.push_back({algo, result});
-        return;
+        return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 
     void *d_workspace{nullptr};
@@ -122,15 +119,10 @@ void Benchmark<T>::forward(cudnnConvolutionFwdAlgo_t algo, uint32_t num_repeats)
                                                      outputTensor->begin());
 
         if (fwd_status == CUDNN_STATUS_NOT_SUPPORTED) {
-            *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-            fwd_result.push_back({algo, result});
-            return;
+            return {0, 0, BENCHMARK_NOT_SUPPORTED};
         } else if (fwd_status != CUDNN_STATUS_SUCCESS) {
-            *result = {0, 0, BENCHMARK_ERROR};
-
             std::cerr << "CUDNN failure: " << cudnnGetErrorString(fwd_status) << std::endl;
-            fwd_result.push_back({algo, result});
-            return;
+            return {0, 0, BENCHMARK_ERROR};
         }
     }
 
@@ -139,25 +131,20 @@ void Benchmark<T>::forward(cudnnConvolutionFwdAlgo_t algo, uint32_t num_repeats)
     fwd_time = std::chrono::duration<double, std::micro>(end - start).count() / num_repeats;
     cudaFree(d_workspace);
 
-    *result = {fwd_time, workspace_size, BENCHMARK_SUCCESS};
-    fwd_result.push_back({algo, result});
-    return;
+    return {fwd_time, workspace_size, BENCHMARK_SUCCESS};
 }
 
 template<typename T>
-void Benchmark<T>::backward_filter(cudnnConvolutionBwdFilterAlgo_t algo, uint32_t num_repeats) {
+benchmarkResult Benchmark<T>::backward_filter(cudnnConvolutionBwdFilterAlgo_t algo, uint32_t num_repeats) {
     assert(inputTensor);
     assert(dW);
     assert(delta);
 
     size_t workspace_size;
-    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
     try {
         workspace_size = bwd_filter_workspace_size(algo);
     } catch (std::exception &exception) {
-        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-        bwd_filter_result.push_back({algo, result});
-        return;
+        return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 
     void *d_workspace{nullptr};
@@ -183,13 +170,10 @@ void Benchmark<T>::backward_filter(cudnnConvolutionBwdFilterAlgo_t algo, uint32_
                                                                          dW->begin());
 
         if (bwd_filter_status == CUDNN_STATUS_NOT_SUPPORTED) {
-            *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-            bwd_filter_result.push_back({algo, result});
-            return;
+            std::cerr << "CUDNN failure: " <<  cudnnGetErrorString(bwd_filter_status) << std::endl;
+            return {0, 0, BENCHMARK_NOT_SUPPORTED};
         } else if (bwd_filter_status != CUDNN_STATUS_SUCCESS) {
-            *result = {0, 0, BENCHMARK_ERROR};
-            bwd_filter_result.push_back({algo, result});
-            return;
+            return {0, 0, BENCHMARK_ERROR};
         }
 
     }
@@ -198,26 +182,20 @@ void Benchmark<T>::backward_filter(cudnnConvolutionBwdFilterAlgo_t algo, uint32_
     fwd_time = std::chrono::duration<double, std::micro>(end - start).count() / num_repeats;
     cudaFree(d_workspace);
 
-    *result = {fwd_time, workspace_size, BENCHMARK_SUCCESS};
-    bwd_filter_result.push_back({algo, result});
-    return;
+    return {fwd_time, workspace_size, BENCHMARK_SUCCESS};
 }
 
 template<typename T>
-void Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t num_repeats) {
+benchmarkResult Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t num_repeats) {
     assert(kernelTensor);
     assert(dX);
     assert(delta);
 
-
     size_t workspace_size;
-    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
     try {
         workspace_size = bwd_data_workspace_size(algo);
     } catch (std::exception &exception) {
-        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-        bwd_data_result.push_back({algo, result});
-        return;
+        return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 
     void *d_workspace{nullptr};
@@ -243,13 +221,10 @@ void Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t nu
                                                                      dX->begin());
 
         if (bwd_data_status == CUDNN_STATUS_NOT_SUPPORTED) {
-            *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-            bwd_data_result.push_back({algo, result});
-            return;
+            return {0, 0, BENCHMARK_NOT_SUPPORTED};
         } else if (bwd_data_status != CUDNN_STATUS_SUCCESS) {
-            *result = {0, 0, BENCHMARK_ERROR};
-            bwd_data_result.push_back({algo, result});
-            return;
+            std::cerr << "CUDNN failure: " << cudnnGetErrorString(bwd_data_status) << std::endl;
+            return {0, 0, BENCHMARK_ERROR};
         }
     }
     cudaDeviceSynchronize();
@@ -257,113 +232,104 @@ void Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, uint32_t nu
     fwd_time = std::chrono::duration<double, std::micro>(end - start).count() / num_repeats;
     cudaFree(d_workspace);
 
-    *result = {fwd_time, workspace_size, BENCHMARK_SUCCESS};
-    bwd_data_result.push_back({algo, result});
-    return;
+    return {fwd_time, workspace_size, BENCHMARK_SUCCESS};
 }
 
 template<typename T>
-void Benchmark<T>::forward_workspace(cudnnConvolutionFwdAlgo_t algo) {
+benchmarkResult Benchmark<T>::forward_workspace(cudnnConvolutionFwdAlgo_t algo) {
     size_t workspace_size;
-    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
     try {
         workspace_size = fwd_workspace_size(algo);
-        *result = {0, workspace_size, BENCHMARK_SUCCESS};
-        fwd_result.push_back({algo, result});
+        return {0, workspace_size, BENCHMARK_SUCCESS};
     } catch (std::exception &exception) {
-        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-        fwd_result.push_back({algo, result});
+        return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 }
 
 template<typename T>
-void Benchmark<T>::backward_filter_workspace(cudnnConvolutionBwdFilterAlgo_t algo) {
+benchmarkResult Benchmark<T>::backward_filter_workspace(cudnnConvolutionBwdFilterAlgo_t algo) {
     size_t workspace_size;
-    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
     try {
         workspace_size = bwd_filter_workspace_size(algo);
-        *result = {0, workspace_size, BENCHMARK_SUCCESS};
-        bwd_filter_result.push_back({algo, result});
+        return {0, workspace_size, BENCHMARK_SUCCESS};
     } catch (std::exception &exception) {
-        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-        bwd_filter_result.push_back({algo, result});
+        return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 }
 
 template<typename T>
-void Benchmark<T>::backward_data_workspace(cudnnConvolutionBwdDataAlgo_t algo) {
+benchmarkResult Benchmark<T>::backward_data_workspace(cudnnConvolutionBwdDataAlgo_t algo) {
     size_t workspace_size;
-    benchmarkResult *result = (benchmarkResult *) malloc(sizeof(benchmarkResult));
     try {
         workspace_size = bwd_data_workspace_size(algo);
-        *result = {0, workspace_size, BENCHMARK_SUCCESS};
-        bwd_data_result.push_back({algo, result});
+        return {0, workspace_size, BENCHMARK_SUCCESS};
     } catch (std::exception &exception) {
-        *result = {0, 0, BENCHMARK_NOT_SUPPORTED};
-        bwd_data_result.push_back({algo, result});
+        return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 }
 
 template<typename T>
 void Benchmark<T>::forward_algorythms(uint32_t num_repeats) {
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_GEMM, num_repeats);
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM, num_repeats);
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM, num_repeats);
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT, num_repeats);
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_FFT, num_repeats);
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING, num_repeats);
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD, num_repeats);
-    forward(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_GEMM = forward(CUDNN_CONVOLUTION_FWD_ALGO_GEMM, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM = forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
+                                                                      num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM = forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_DIRECT = forward(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT = forward(CUDNN_CONVOLUTION_FWD_ALGO_FFT, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING = forward(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD = forward(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED = forward(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED,
+                                                                          num_repeats);
 }
 
 template<typename T>
 void Benchmark<T>::backward_filter_algorythms(uint32_t num_repeats) {
-    backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0, num_repeats);
-    backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1, num_repeats);
-    backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3, num_repeats);
-    backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT, num_repeats);
-    backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING, num_repeats);
 }
 
 template<typename T>
 void Benchmark<T>::backward_data_algorythms(uint32_t num_repeats) {
-    backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0, num_repeats);
-    backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1, num_repeats);
-    backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT, num_repeats);
-    backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING, num_repeats);
-    backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD, num_repeats);
-    backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_0 = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED, num_repeats);
 }
 
 template<typename T>
 void Benchmark<T>::forward_algorythms_workspace() {
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_GEMM);
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT);
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT);
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING);
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
-    forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_GEMM = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_GEMM);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_DIRECT = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
 }
 
 template<typename T>
 void Benchmark<T>::backward_filter_algorythms_workspace() {
-    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0);
-    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1);
-    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3);
-    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
-    backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0 = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3 = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
 }
 
 template<typename T>
 void Benchmark<T>::backward_data_algorythms_workspace() {
-    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0);
-    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1);
-    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT);
-    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
-    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
-    backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_0 = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
 }
 
 template<typename T>
@@ -412,9 +378,6 @@ void Benchmark<T>::workspace_benchmark() {
 
 template<typename T>
 void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats) {
-    fwd_result.clear();
-    bwd_data_result.clear();
-    bwd_filter_result.clear();
     this->benchmark_row = &benchmarkInput;
 
     cudnnDataType_t dataType;
@@ -493,23 +456,24 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
 }
 
 template<typename T>
-void Benchmark<T>::run(std::string file_name, bool all_formats, benchmarkOperationMode operation_mode, uint32_t num_repeats,
-                       cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format,
-                       cudnnTensorFormat_t kernel_format) {
+void
+Benchmark<T>::run(std::string file_name, std::string output_file_name, bool all_formats, benchmarkOperationMode operation_mode, uint32_t num_repeats,
+                  cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format,
+                  cudnnTensorFormat_t kernel_format) {
 
     auto benchmark_rows = parser::readInputDataFile(file_name);
-    parser::openOutFile();
 
     Benchmark<T> benchmark(operation_mode);
+    parser::Parser<T> parser(&benchmark, output_file_name);
     for (auto row : benchmark_rows) {
-        if (!all_formats){
+        if (!all_formats) {
             row.inputTensorFormat = input_format;
             row.outputTensorFormat = output_format;
             row.filterFormat = kernel_format;
 
             try {
                 benchmark.benchmark(row, num_repeats);
-                parser::writeBenchmarkResult(benchmark);
+                parser.writeBenchmarkResult();
             } catch (std::exception &e) {
                 std::cerr << "Exception: " << e.what() << std::endl;
             }
@@ -520,7 +484,7 @@ void Benchmark<T>::run(std::string file_name, bool all_formats, benchmarkOperati
 
             try {
                 benchmark.benchmark(row, num_repeats);
-                parser::writeBenchmarkResult(benchmark);
+                parser.writeBenchmarkResult();
             } catch (std::exception &e) {
                 std::cerr << "Exception: " << e.what() << std::endl;
             }
@@ -531,7 +495,7 @@ void Benchmark<T>::run(std::string file_name, bool all_formats, benchmarkOperati
 
             try {
                 benchmark.benchmark(row, num_repeats);
-                parser::writeBenchmarkResult(benchmark);
+                parser.writeBenchmarkResult();
             } catch (std::exception &e) {
                 std::cerr << "Exception: " << e.what() << std::endl;
             }
@@ -542,22 +506,23 @@ void Benchmark<T>::run(std::string file_name, bool all_formats, benchmarkOperati
 
             try {
                 benchmark.benchmark(row, num_repeats);
-                parser::writeBenchmarkResult(benchmark);
+                parser.writeBenchmarkResult();
             } catch (std::exception &e) {
                 std::cerr << "Exception: " << e.what() << "THIS FORMAT NOT SUPPORT CURRENT DATA TYPE" << std::endl;
             }
         }
     }
-    parser::closeOutFile();
+    parser.closeOutFile();
 }
 
 int main(int argc, char **argv) {
     if (argc < 6) {
         std::cerr << "ERROR ARGS PROGRAM: \n"
                      "file_name - name of input file with convolution cases\n"
+                     "file_name_output - name of output file with benchmark result\n"
                      "data_type - type of data values (like fp16 and etc)\n"
                      "all_format - use all cudnn data format (true/false)\n"
-                     "only_workspace - benchmark only workspace size\n"
+                     "operation_mode - benchmark operation mode\n"
                      "num_repeats - number of repeats per one algorithm\n"
                      "input_tensor_data_format - format of input tensor\n"
                      "output_tensor_data_format - format of output tensor\n"
@@ -567,12 +532,13 @@ int main(int argc, char **argv) {
     }
 
     std::string file_name = argv[1];
-    std::string data_type_name = argv[2];
-    bool all_formats = static_cast<bool>(std::stoi(argv[3]));
-    benchmarkOperationMode operation_mode = static_cast<benchmarkOperationMode>(std::stoi(argv[4]));
-    uint32_t num_repeats = static_cast<uint32_t>(std::stoi(argv[5]));
+    std::string output_file_name = argv[2];
+    std::string data_type_name = argv[3];
+    bool all_formats = static_cast<bool>(std::stoi(argv[4]));
+    benchmarkOperationMode operation_mode = static_cast<benchmarkOperationMode>(std::stoi(argv[5]));
+    uint32_t num_repeats = static_cast<uint32_t>(std::stoi(argv[6]));
 
-    if ( !all_formats && (argc < 9) ) {
+    if (!all_formats && (argc < 10)) {
         std::cerr << "input_tensor_data_format - format of input tensor\n"
                      "output_tensor_data_format - format of output tensor\n"
                      "kernel_tensor_data_format - format of kernel tensor\n" << std::endl;
@@ -582,18 +548,21 @@ int main(int argc, char **argv) {
     cudnnTensorFormat_t input_format;
     cudnnTensorFormat_t output_format;
     cudnnTensorFormat_t kernel_format;
-    if (!all_formats){
-        input_format = get_data_format_by_name(argv[6]);
-        output_format = get_data_format_by_name(argv[7]);
-        kernel_format = get_data_format_by_name(argv[8]);
+    if (!all_formats) {
+        input_format = get_data_format_by_name(argv[7]);
+        output_format = get_data_format_by_name(argv[8]);
+        kernel_format = get_data_format_by_name(argv[9]);
     }
 
     if (data_type_name.compare("fp16") == 0)
-        Benchmark<uint32_t>::run(file_name, all_formats, operation_mode, num_repeats, input_format, output_format, kernel_format);
+        Benchmark<uint32_t>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format, output_format,
+                                 kernel_format);
     else if (data_type_name.compare("fp32") == 0)
-        Benchmark<float>::run(file_name, all_formats, operation_mode, num_repeats, input_format, output_format, kernel_format);
+        Benchmark<float>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format, output_format,
+                              kernel_format);
     else if (data_type_name.compare("fp64") == 0)
-        Benchmark<double>::run(file_name, all_formats, operation_mode, num_repeats, input_format, output_format, kernel_format);
+        Benchmark<double>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format, output_format,
+                               kernel_format);
     else throw new std::runtime_error("Data type not supported");
 
     return 0;
