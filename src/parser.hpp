@@ -11,11 +11,7 @@
 #include <cudnn.h>
 #include "benchmark.hpp"
 
-#define OUT_FILE_NAME "benchmark_result.txt"
-
 namespace parser {
-    std::ofstream outfile;
-
     std::vector<benchmarkRow> readInputDataFile(std::string file_name) {
         std::ifstream infile(file_name);
 
@@ -119,82 +115,228 @@ namespace parser {
         return benchmark_rows;
     }
 
-    void openOutFile() {
-        outfile.open(OUT_FILE_NAME, std::ios::app);
-        outfile
-                << "// input_format output_format filter_format W H C N K S R pad_w pad_h stride_w stride_h out_w out_h input_stride_w input_stride_h filter_stride_w filter_stride_h"
-                << std::endl;
-        outfile << "// ALGO STATUS TIME WORKSPACE" << std::endl;
-    }
-
-    void closeOutFile() {
-        outfile.close();
-    }
-
     template<typename T>
-    void writeBenchmarkResult(Benchmark<T> &benchmark) {
-        outfile << std::endl;
-        auto row = benchmark.benchmark_row;
-        outfile << get_data_format_name(row->inputTensorFormat) << " " << get_data_format_name(row->outputTensorFormat)
-                << " " << get_data_format_name(row->filterFormat) << " " << row->w << " " << row->h << " " << row->c
-                << " " << row->n << " " << row->k << " " << row->s << " " << row->r << " " << row->pad_w
-                << " " << row->pad_h << " " << row->stride_w << " " << row->stride_h
-                << " " << row->out_w << " " << row->out_h << " " << row->input_stride_w << " " << row->input_stride_h
-                << " " << row->filter_stride_w << " " << row->filter_stride_h << std::endl;
+    class Parser {
+        Benchmark<T> *benchmark_;
+        std::ofstream outfile_stream_;
+        std::string out_file_name_;
 
-        for (auto fwd_result : benchmark.fwd_result) {
-            outfile << get_fwd_algo_name(fwd_result.algo) << " ";
+        void openOutFile() {
+            outfile_stream_.open(out_file_name_, std::ios::app);
 
-            switch (fwd_result.result->status) {
+            outfile_stream_ << "input_format"
+                       "\toutput_format"
+                       "\tfilter_format"
+                       "\tW"
+                       "\tH"
+                       "\tC"
+                       "\tN"
+                       "\tK"
+                       "\tS"
+                       "\tR"
+                       "\tpad_w"
+                       "\tpad_h"
+                       "\tstride_w"
+                       "\tstride_h"
+                       "\tout_w"
+                       "\tout_h"
+                       "\tinput_stride_w"
+                       "\tinput_stride_h"
+                       "\tfilter_stride_w"
+                       "\tfilter_stride_h";
+
+            switch (benchmark_->operation_mode) {
+                case CALCULATION_AND_WORKSPACE_SIZE_MODE:
+                    outfile_stream_ << "\tFWD_GEMM"
+                               "\tFWD_GEMM WORKSPACE"
+                               "\tFWD_IMPLICIT_GEMM"
+                               "\tFWD_IMPLICIT_GEMM WORKSPACE"
+                               "\tFWD_PRECOMP_GEMM"
+                               "\tFWD_PRECOMP_GEMM WORKSPACE"
+                               "\tFWD_DIRECT"
+                               "\tFWD_DIRECT WROKSPACE"
+                               "\tFWD_FFT"
+                               "\tFWD_FFT WORKSPACE"
+                               "\tFWD_FFT_TILING"
+                               "\tFWD_FFT_TILING WORKSPACE"
+                               "\tFWD_WINOGRAD"
+                               "\tFWD_WINOGRAD WORKSPACE"
+                               "\tFWD_WINOGRAD_NONFUSED"
+                               "\tFWD_WINOGRAD_NONFUSED WORKSPACE"
+                               "\tBWD_FILTER_ALGO_0"
+                               "\tBWD_FILTER_ALGO_0 WORKPACE"
+                               "\tBWD_FILTER_ALGO_1"
+                               "\tBWD_FILTER_ALGO_1 WORKSPACE"
+                               "\tBWD_FILTER_ALGO_3"
+                               "\tBWD_FILTER_ALGO_3 WORKSPACE"
+                               "\tBWD_FILTER_FFT"
+                               "\tBWD_FILTER_FFT WORKSPACE"
+                               "\tBWD FILTER FFT_TILING"
+                               "\tBWD FILTER FFT_TILING WORKSPACE"
+                               "\tBWD_DATA_ALGO_0"
+                               "\tBWD_DATA_ALGO_0 WORKSPACE"
+                               "\tBWD_DATA_ALGO_1"
+                               "\tBWD_DATA_ALGO_1 WORKSPACE"
+                               "\tBWD_DATA_FFT"
+                               "\tBWD_DATA_FFT WORKSPACE"
+                               "\tBWD_DATA_FFT_TILING"
+                               "\tBWD_DATA_FFT_TILING WORKSPACE"
+                               "\tBWD_DATA_WINOGRAD"
+                               "\tBWD_DATA_WINOGRAD WORKSPACE"
+                               "\tBWD_DATA_WINOGRAD_NONFUSED"
+                               "\tBWD_DATA_WINOGRAD_NONFUSED WORKSPACE"
+                               << std::endl;
+                    break;
+                case ONLY_WORKSPACE_SIZE_MODE:
+                    outfile_stream_ << "\tFWD_GEMM"
+                               "\tFWD_IMPLICIT_GEMM WORKSPACE"
+                               "\tFWD_PRECOMP_GEMM WORKSPACE"
+                               "\tFWD_DIRECT WORKSPACE"
+                               "\tFWD_FFT WORKSPACE"
+                               "\tFWD_FFT_TILING WORKSPACE"
+                               "\tFWD_WINOGRAD WORKSPACE"
+                               "\tFWD_WINOGRAD_NONFUSED WORKSPACE"
+                               "\tBWD_FILTER_ALGO_0 WORKSPACE"
+                               "\tBWD_FILTER_ALGO_1 WORKSPACE"
+                               "\tBWD_FILTER_ALGO_3 WORKSPACE"
+                               "\tBWD_FILTER_FFT WORKSPACE"
+                               "\tBWD FILTER FFT_TILING WORKSPACE"
+                               "\tBWD_DATA_ALGO_0 WORKSPACE"
+                               "\tBWD_DATA_ALGO_1 WORKSPACE"
+                               "\tBWD_DATA_FFT WORKSPACE"
+                               "\tBWD_DATA_FFT_TILING WORKSPACE"
+                               "\tBWD_DATA_WINOGRAD WORKSPACE"
+                               "\tBWD_DATA_WINOGRAD_NONFUSED WORKSPACE"
+                               << std::endl;
+            }
+        }
+
+        void writeBenchmarkResultCalculateMode(benchmarkResult &result) {
+            switch (result.status) {
                 case BENCHMARK_SUCCESS:
-                    outfile << "success " << fwd_result.result->time << " " << fwd_result.result->workspace_size
-                            << std::endl;
+                    outfile_stream_ << result.time << "\t" << result.workspace_size << "\t";
                     break;
                 case BENCHMARK_NOT_SUPPORTED:
-                    outfile << "n/a" << std::endl;
+                    outfile_stream_ << "n/a\t\t";
                     break;
                 case BENCHMARK_ERROR:
-                    outfile << "error" << std::endl;
+                    outfile_stream_ << "-\t\t";
                     break;
             }
         }
 
-        for (auto bwd_filter : benchmark.bwd_filter_result) {
-            outfile << get_bwd_filter_algo_name(bwd_filter.algo) << " ";
-
-            switch (bwd_filter.result->status) {
+        void writeBenchmarkResultWorkspaceMode(benchmarkResult &result) {
+            switch (result.status) {
                 case BENCHMARK_SUCCESS:
-                    outfile << "success " << bwd_filter.result->time << " " << bwd_filter.result->workspace_size
-                            << std::endl;
+                    outfile_stream_  << result.workspace_size << "\t";
                     break;
                 case BENCHMARK_NOT_SUPPORTED:
-                    outfile << "n/a" << std::endl;
+                    outfile_stream_ << "n/a\t";
                     break;
                 case BENCHMARK_ERROR:
-                    outfile << "error" << std::endl;
+                    outfile_stream_ << "-\t";
                     break;
             }
         }
 
-        for (auto bwd_data : benchmark.bwd_data_result) {
-            outfile << get_bwd_data_algo_name(bwd_data.algo) << " ";
+        void writeBenchmarkCalculateMode() {
+            auto row = benchmark_->benchmark_row;
+            outfile_stream_ << get_data_format_name(row->inputTensorFormat) << "\t" << get_data_format_name(row->outputTensorFormat)
+                    << "\t" << get_data_format_name(row->filterFormat) << "\t" << row->w << "\t" << row->h << "\t" << row->c
+                    << "\t" << row->n << "\t" << row->k << "\t" << row->s << "\t" << row->r << "\t" << row->pad_w
+                    << "\t" << row->pad_h << "\t" << row->stride_w << "\t" << row->stride_h
+                    << "\t" << row->out_w << "\t" << row->out_h << "\t" << row->input_stride_w << "\t"
+                    << row->input_stride_h
+                    << "\t" << row->filter_stride_w << "\t" << row->filter_stride_h << "\t";
 
-            switch (bwd_data.result->status) {
-                case BENCHMARK_SUCCESS:
-                    outfile << "success " << bwd_data.result->time << " " << bwd_data.result->workspace_size
-                            << std::endl;
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_GEMM);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_DIRECT);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_FFT);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
+
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
+
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_0);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_1);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
+            writeBenchmarkResultCalculateMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
+
+            outfile_stream_ << std::endl;
+        }
+
+        void writeBenchmarkOnlyWorkspaceSizeMode() {
+            auto row = benchmark_->benchmark_row;
+
+            outfile_stream_ << get_data_format_name(row->inputTensorFormat) << "\t"
+                    << get_data_format_name(row->outputTensorFormat)
+                    << "\t" << get_data_format_name(row->filterFormat) << "\t" << row->w << "\t" << row->h << "\t" << row->c
+                    << "\t" << row->n << "\t" << row->k << "\t" << row->s << "\t" << row->r << "\t" << row->pad_w
+                    << "\t" << row->pad_h << "\t" << row->stride_w << "\t" << row->stride_h
+                    << "\t" << row->out_w << "\t" << row->out_h << "\t" << row->input_stride_w << "\t"
+                    << row->input_stride_h
+                    << "\t" << row->filter_stride_w << "\t" << row->filter_stride_h << "\t";
+
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_GEMM);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_DIRECT);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_FFT);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
+
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
+
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_0);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_1);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
+            writeBenchmarkResultWorkspaceMode(row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
+
+            outfile_stream_ << std::endl;
+        }
+
+    public:
+        Parser(Benchmark<T> *benchmark, std::string out_file_name = "benchmark_result.txt") {
+            this->benchmark_ = benchmark;
+            this->out_file_name_ = out_file_name;
+            openOutFile();
+        }
+
+        ~Parser() {
+            closeOutFile();
+        }
+
+        void closeOutFile() {
+            outfile_stream_.close();
+        }
+
+        void writeBenchmarkResult() {
+            switch (benchmark_->operation_mode) {
+                case CALCULATION_AND_WORKSPACE_SIZE_MODE:
+                    writeBenchmarkCalculateMode();
                     break;
-                case BENCHMARK_NOT_SUPPORTED:
-                    outfile << "n/a" << std::endl;
-                    break;
-                case BENCHMARK_ERROR:
-                    outfile << "error" << std::endl;
+                case ONLY_WORKSPACE_SIZE_MODE:
+                    writeBenchmarkOnlyWorkspaceSizeMode();
                     break;
             }
         }
-
-        outfile << std::endl;
-    }
+    };
 }
 
 #endif //BENCHMARK_PARSER_H

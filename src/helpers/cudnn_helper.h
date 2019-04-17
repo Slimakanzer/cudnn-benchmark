@@ -17,21 +17,6 @@ void throw_cudnn_err(cudnnStatus_t status, int line, const char *filename) {
 
 #define CHECK_CUDNN_ERROR(status) throw_cudnn_err(status, __LINE__, __FILE__)
 
-void check_algo_worksize(cudnnStatus_t result, size_t workspace_bytes, std::string name) {
-    switch (result) {
-        case CUDNN_STATUS_SUCCESS:
-            std::cerr << "Workspace size: " << (workspace_bytes / 1048576.0) << " MB" << std::endl;
-            break;
-        case CUDNN_STATUS_NOT_SUPPORTED:
-            std::cerr << "Not supported" << std::endl;
-            break;
-        default:
-            std::cerr << "ERROR" << std::endl;
-    }
-}
-
-#define CHECK_ALGO_WORKSIZE(result, workspace, name) check_algo_worksize(result, workspace, name)
-
 std::string get_fwd_algo_name(cudnnConvolutionFwdAlgo_t algo) {
     switch (algo) {
         case CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM:
