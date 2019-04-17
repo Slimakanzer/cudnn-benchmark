@@ -11,10 +11,9 @@
 #include <cudnn.h>
 #include "benchmark.hpp"
 
-#define OUT_FILE_NAME "benchmark_result.txt"
-
 namespace parser {
     std::ofstream outfile;
+    std::string OUT_FILE_NAME = "benchmark_result.txt";
 
     std::vector<benchmarkRow> readInputDataFile(std::string file_name) {
         std::ifstream infile(file_name);

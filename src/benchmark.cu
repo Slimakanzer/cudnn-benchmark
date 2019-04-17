@@ -555,6 +555,7 @@ int main(int argc, char **argv) {
     if (argc < 6) {
         std::cerr << "ERROR ARGS PROGRAM: \n"
                      "file_name - name of input file with convolution cases\n"
+                     "file_name_output - name of output file with benchmark result\n"
                      "data_type - type of data values (like fp16 and etc)\n"
                      "all_format - use all cudnn data format (true/false)\n"
                      "only_workspace - benchmark only workspace size\n"
@@ -567,12 +568,13 @@ int main(int argc, char **argv) {
     }
 
     std::string file_name = argv[1];
-    std::string data_type_name = argv[2];
-    bool all_formats = static_cast<bool>(std::stoi(argv[3]));
-    benchmarkOperationMode operation_mode = static_cast<benchmarkOperationMode>(std::stoi(argv[4]));
-    uint32_t num_repeats = static_cast<uint32_t>(std::stoi(argv[5]));
+    parser::OUT_FILE_NAME = argv[2];
+    std::string data_type_name = argv[3];
+    bool all_formats = static_cast<bool>(std::stoi(argv[4]));
+    benchmarkOperationMode operation_mode = static_cast<benchmarkOperationMode>(std::stoi(argv[5]));
+    uint32_t num_repeats = static_cast<uint32_t>(std::stoi(argv[6]));
 
-    if ( !all_formats && (argc < 9) ) {
+    if ( !all_formats && (argc < 10) ) {
         std::cerr << "input_tensor_data_format - format of input tensor\n"
                      "output_tensor_data_format - format of output tensor\n"
                      "kernel_tensor_data_format - format of kernel tensor\n" << std::endl;
@@ -583,9 +585,9 @@ int main(int argc, char **argv) {
     cudnnTensorFormat_t output_format;
     cudnnTensorFormat_t kernel_format;
     if (!all_formats){
-        input_format = get_data_format_by_name(argv[6]);
-        output_format = get_data_format_by_name(argv[7]);
-        kernel_format = get_data_format_by_name(argv[8]);
+        input_format = get_data_format_by_name(argv[7]);
+        output_format = get_data_format_by_name(argv[8]);
+        kernel_format = get_data_format_by_name(argv[9]);
     }
 
     if (data_type_name.compare("fp16") == 0)
