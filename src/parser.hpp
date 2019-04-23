@@ -220,7 +220,7 @@ namespace parser {
                     outfile_stream_ << "n/a\t\t";
                     break;
                 case BENCHMARK_ERROR:
-                    outfile_stream_ << "-\t\t";
+                    outfile_stream_ << "-\t" << result.workspace_size <<"\t";
                     break;
             }
         }

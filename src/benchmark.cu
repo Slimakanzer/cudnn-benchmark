@@ -92,6 +92,7 @@ benchmarkResult Benchmark<T>::forward(cudnnConvolutionFwdAlgo_t algo, uint32_t n
     try {
         workspace_size = fwd_workspace_size(algo);
     } catch (std::exception &exception) {
+        std::cerr << "WORKSPACE SIZE: " << get_fwd_algo_name(algo) << " " << exception.what();
         return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 
@@ -118,12 +119,10 @@ benchmarkResult Benchmark<T>::forward(cudnnConvolutionFwdAlgo_t algo, uint32_t n
                                                      outputTensorDescriptor->descriptor(),
                                                      outputTensor->begin());
 
-        if (fwd_status == CUDNN_STATUS_NOT_SUPPORTED) {
-            return {0, 0, BENCHMARK_NOT_SUPPORTED};
-        } else if (fwd_status != CUDNN_STATUS_SUCCESS) {
-            std::cerr << "CUDNN failure: " << cudnnGetErrorString(fwd_status) << "algo: " << get_fwd_algo_name(algo)
+        if (fwd_status != CUDNN_STATUS_SUCCESS) {
+            std::cerr << "CONVOLUTION: CUDNN failure: " << cudnnGetErrorString(fwd_status) << "algo: " << get_fwd_algo_name(algo)
                       << " file: " << __FILE__ << " line: " << __LINE__ << std::endl;
-            return {0, 0, BENCHMARK_ERROR};
+            return {0, workspace_size, BENCHMARK_ERROR};
         }
     }
 
@@ -145,6 +144,7 @@ benchmarkResult Benchmark<T>::backward_filter(cudnnConvolutionBwdFilterAlgo_t al
     try {
         workspace_size = bwd_filter_workspace_size(algo);
     } catch (std::exception &exception) {
+        std::cerr << "WORKSPACE SIZE: " << get_bwd_filter_algo_name(algo) << " " << exception.what();
         return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 
@@ -170,12 +170,10 @@ benchmarkResult Benchmark<T>::backward_filter(cudnnConvolutionBwdFilterAlgo_t al
                                                                          filterDescriptor->descriptor(),
                                                                          dW->begin());
 
-        if (bwd_filter_status == CUDNN_STATUS_NOT_SUPPORTED) {
-            std::cerr << "CUDNN failure: " << cudnnGetErrorString(bwd_filter_status) << "algo: "
+        if (bwd_filter_status != CUDNN_STATUS_SUCCESS) {
+            std::cerr << "CONVOLUTION: CUDNN failure: " << cudnnGetErrorString(bwd_filter_status) << "algo: "
                       << get_bwd_filter_algo_name(algo) << " file: " << __FILE__ << " line: " << __LINE__ << std::endl;
-            return {0, 0, BENCHMARK_NOT_SUPPORTED};
-        } else if (bwd_filter_status != CUDNN_STATUS_SUCCESS) {
-            return {0, 0, BENCHMARK_ERROR};
+            return {0, workspace_size, BENCHMARK_ERROR};
         }
 
     }
@@ -197,6 +195,7 @@ benchmarkResult Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, 
     try {
         workspace_size = bwd_data_workspace_size(algo);
     } catch (std::exception &exception) {
+        std::cerr << "WORKSPACE SIZE: " << get_bwd_data_algo_name(algo) << " " << exception.what();
         return {0, 0, BENCHMARK_NOT_SUPPORTED};
     }
 
@@ -222,12 +221,10 @@ benchmarkResult Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, 
                                                                      inputTensorDescriptor->descriptor(),
                                                                      dX->begin());
 
-        if (bwd_data_status == CUDNN_STATUS_NOT_SUPPORTED) {
-            return {0, 0, BENCHMARK_NOT_SUPPORTED};
-        } else if (bwd_data_status != CUDNN_STATUS_SUCCESS) {
-            std::cerr << "CUDNN failure: " << cudnnGetErrorString(bwd_data_status) << " algo: "
+        if (bwd_data_status != CUDNN_STATUS_SUCCESS) {
+            std::cerr << "CONVOLUTION: CUDNN failure: " << cudnnGetErrorString(bwd_data_status) << " algo: "
                       << get_bwd_data_algo_name(algo) << " file: " << __FILE__ << " line: " << __LINE__ << std::endl;
-            return {0, 0, BENCHMARK_ERROR};
+            return {0, workspace_size, BENCHMARK_ERROR};
         }
     }
     cudaDeviceSynchronize();
