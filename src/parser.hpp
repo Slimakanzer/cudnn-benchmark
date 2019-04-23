@@ -2,7 +2,7 @@
 // Created by slimakanzer on 01.04.19.
 //
 
-#ifndef BENCHMARK_PARSER_H
+#if !defined(BENCHMARK_PARSER_H)
 #define BENCHMARK_PARSER_H
 
 #include <fstream>

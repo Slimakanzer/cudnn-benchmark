@@ -46,3 +46,4 @@ gen### CUDA template
 *.cubin
 *.fatbin
 
+debug/
