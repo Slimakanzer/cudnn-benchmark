@@ -121,7 +121,8 @@ benchmarkResult Benchmark<T>::forward(cudnnConvolutionFwdAlgo_t algo, uint32_t n
         if (fwd_status == CUDNN_STATUS_NOT_SUPPORTED) {
             return {0, 0, BENCHMARK_NOT_SUPPORTED};
         } else if (fwd_status != CUDNN_STATUS_SUCCESS) {
-            std::cerr << "CUDNN failure: " << cudnnGetErrorString(fwd_status) << std::endl;
+            std::cerr << "CUDNN failure: " << cudnnGetErrorString(fwd_status) << "algo: " << get_fwd_algo_name(algo)
+                      << " file: " << __FILE__ << " line: " << __LINE__ << std::endl;
             return {0, 0, BENCHMARK_ERROR};
         }
     }
@@ -170,7 +171,8 @@ benchmarkResult Benchmark<T>::backward_filter(cudnnConvolutionBwdFilterAlgo_t al
                                                                          dW->begin());
 
         if (bwd_filter_status == CUDNN_STATUS_NOT_SUPPORTED) {
-            std::cerr << "CUDNN failure: " <<  cudnnGetErrorString(bwd_filter_status) << std::endl;
+            std::cerr << "CUDNN failure: " << cudnnGetErrorString(bwd_filter_status) << "algo: "
+                      << get_bwd_filter_algo_name(algo) << " file: " << __FILE__ << " line: " << __LINE__ << std::endl;
             return {0, 0, BENCHMARK_NOT_SUPPORTED};
         } else if (bwd_filter_status != CUDNN_STATUS_SUCCESS) {
             return {0, 0, BENCHMARK_ERROR};
@@ -223,7 +225,8 @@ benchmarkResult Benchmark<T>::backward_data(cudnnConvolutionBwdDataAlgo_t algo, 
         if (bwd_data_status == CUDNN_STATUS_NOT_SUPPORTED) {
             return {0, 0, BENCHMARK_NOT_SUPPORTED};
         } else if (bwd_data_status != CUDNN_STATUS_SUCCESS) {
-            std::cerr << "CUDNN failure: " << cudnnGetErrorString(bwd_data_status) << std::endl;
+            std::cerr << "CUDNN failure: " << cudnnGetErrorString(bwd_data_status) << " algo: "
+                      << get_bwd_data_algo_name(algo) << " file: " << __FILE__ << " line: " << __LINE__ << std::endl;
             return {0, 0, BENCHMARK_ERROR};
         }
     }
@@ -273,7 +276,8 @@ void Benchmark<T>::forward_algorythms(uint32_t num_repeats) {
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_GEMM = forward(CUDNN_CONVOLUTION_FWD_ALGO_GEMM, num_repeats);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM = forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
                                                                       num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM = forward(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM = forward(
+            CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM, num_repeats);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_DIRECT = forward(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT, num_repeats);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT = forward(CUDNN_CONVOLUTION_FWD_ALGO_FFT, num_repeats);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING = forward(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING, num_repeats);
@@ -284,33 +288,45 @@ void Benchmark<T>::forward_algorythms(uint32_t num_repeats) {
 
 template<typename T>
 void Benchmark<T>::backward_filter_algorythms(uint32_t num_repeats) {
-    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0,
+                                                                         num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1,
+                                                                         num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3 = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3,
+                                                                         num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT = backward_filter(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT,
+                                                                           num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING = backward_filter(
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING, num_repeats);
 }
 
 template<typename T>
 void Benchmark<T>::backward_data_algorythms(uint32_t num_repeats) {
     benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_0 = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0, num_repeats);
     benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD, num_repeats);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT,
+                                                                       num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING = backward_data(
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING, num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD = backward_data(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD,
+                                                                            num_repeats);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED = backward_data(
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED, num_repeats);
 }
 
 template<typename T>
 void Benchmark<T>::forward_algorythms_workspace() {
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_GEMM = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_GEMM);
-    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
-    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM = forward_workspace(
+            CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM = forward_workspace(
+            CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_DIRECT = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_DIRECT);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING);
     benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
-    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED = forward_workspace(CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
+    benchmark_row->CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED = forward_workspace(
+            CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED);
 }
 
 template<typename T>
@@ -318,8 +334,10 @@ void Benchmark<T>::backward_filter_algorythms_workspace() {
     benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0 = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0);
     benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1);
     benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3 = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING = backward_filter_workspace(CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT = backward_filter_workspace(
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING = backward_filter_workspace(
+            CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING);
 }
 
 template<typename T>
@@ -327,9 +345,12 @@ void Benchmark<T>::backward_data_algorythms_workspace() {
     benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_0 = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_0);
     benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_1);
     benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
-    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED = backward_data_workspace(CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING = backward_data_workspace(
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD = backward_data_workspace(
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD);
+    benchmark_row->CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED = backward_data_workspace(
+            CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED);
 }
 
 template<typename T>
@@ -381,18 +402,24 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
     this->benchmark_row = &benchmarkInput;
 
     cudnnDataType_t dataType;
-    if (std::is_same<T, float>::value) {
+    if (std::is_same<T, DATA_FLOAT>::value) {
         dataType = CUDNN_DATA_FLOAT;
-    } else if (std::is_same<T, double>::value) {
+    } else if (std::is_same<T, DATA_DOUBLE>::value) {
         dataType = CUDNN_DATA_DOUBLE;
-    } else if (std::is_same<T, uint16_t>::value) {
+    } else if (std::is_same<T, DATA_HALF_FLOAT>::value) {
         dataType = CUDNN_DATA_HALF;
-    } else if (std::is_same<T, int32_t>::value) {
+    } else if (std::is_same<T, DATA_INT32>::value) {
         dataType = CUDNN_DATA_INT32;
-    } else if (std::is_same<T, int8_t>::value) {
+    } else if (std::is_same<T, DATA_INT8>::value) {
         dataType = CUDNN_DATA_INT8;
-    } else if (std::is_same<T, uint8_t>::value) {
+    } else if (std::is_same<T, DATA_UINT8>::value) {
         dataType = CUDNN_DATA_UINT8;
+    } else if (std::is_same<T, DATA_INT8x4>::value) {
+        dataType = CUDNN_DATA_INT8x4;
+    } else if (std::is_same<T, DATA_INT8x32>::value) {
+        dataType = CUDNN_DATA_INT8x32;
+    } else if (std::is_same<T, DATA_UINT8x4>::value) {
+        dataType = CUDNN_DATA_UINT8x4;
     } else {
         throw new std::runtime_error("Cannot find supported format");
     }
@@ -436,6 +463,18 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
                                                       1,
                                                       CUDNN_CONVOLUTION,
                                                       dataType));
+    int n, c, h, w;
+
+    CHECK_CUDNN_ERROR(cudnnGetConvolution2dForwardOutputDim(
+            convolutionDescriptor_,
+            inputTensorDescriptor->descriptor(),
+            filterDescriptor->descriptor(),
+            &n,
+            &c,
+            &h,
+            &w));
+
+    std::cerr << "OUT VALUES: " << h <<" " << w << " " << c << " " << n << std::endl;
 
     cudnnSetConvolutionMathType(convolutionDescriptor_, CUDNN_TENSOR_OP_MATH);
 
@@ -457,7 +496,8 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
 
 template<typename T>
 void
-Benchmark<T>::run(std::string file_name, std::string output_file_name, bool all_formats, benchmarkOperationMode operation_mode, uint32_t num_repeats,
+Benchmark<T>::run(std::string file_name, std::string output_file_name, bool all_formats,
+                  benchmarkOperationMode operation_mode, uint32_t num_repeats,
                   cudnnTensorFormat_t input_format, cudnnTensorFormat_t output_format,
                   cudnnTensorFormat_t kernel_format) {
 
@@ -555,15 +595,42 @@ int main(int argc, char **argv) {
     }
 
     if (data_type_name.compare("fp16") == 0)
-        Benchmark<uint32_t>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format, output_format,
-                                 kernel_format);
+        Benchmark<DATA_HALF_FLOAT>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats,
+                                        input_format, output_format,
+                                        kernel_format);
     else if (data_type_name.compare("fp32") == 0)
-        Benchmark<float>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format, output_format,
-                              kernel_format);
+        Benchmark<DATA_FLOAT>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format,
+                                   output_format,
+                                   kernel_format);
     else if (data_type_name.compare("fp64") == 0)
-        Benchmark<double>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format, output_format,
-                               kernel_format);
-    else throw new std::runtime_error("Data type not supported");
+        Benchmark<DATA_DOUBLE>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format,
+                                    output_format,
+                                    kernel_format);
+    else if (data_type_name.compare("int8") == 0)
+        Benchmark<DATA_INT8>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format,
+                                  output_format,
+                                  kernel_format);
+    else if (data_type_name.compare("uint8") == 0)
+        Benchmark<DATA_UINT8>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format,
+                                   output_format,
+                                   kernel_format);
+    else if (data_type_name.compare("int32") == 0)
+        Benchmark<DATA_INT32>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format,
+                                   output_format,
+                                   kernel_format);
+    else if (data_type_name.compare("int8x4") == 0)
+        Benchmark<DATA_INT8x4>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats, input_format,
+                                    output_format,
+                                    kernel_format);
+    else if (data_type_name.compare("int8x32") == 0)
+        Benchmark<DATA_INT8x32>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats,
+                                     input_format, output_format,
+                                     kernel_format);
+    else if (data_type_name.compare("uint8x4") == 0)
+        Benchmark<DATA_UINT8x4>::run(file_name, output_file_name, all_formats, operation_mode, num_repeats,
+                                     input_format, output_format,
+                                     kernel_format);
+    else std::cerr << "Data type not supported" << std::endl;
 
     return 0;
 }

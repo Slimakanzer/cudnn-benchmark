@@ -3,7 +3,7 @@
 //
 
 #ifndef BENCHMARK_BENCHMARK_H
-#define BENCHMARK_BENCHMARK_H 1
+#define BENCHMARK_BENCHMARK_H
 
 #include "helpers/cuda_helper.h"
 #include "helpers/cudnn_helper.h"
