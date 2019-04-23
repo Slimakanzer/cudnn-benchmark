@@ -1,4 +1,4 @@
-#ifndef CUDA_HELPER_H
+#if !defined(CUDA_HELPER_H)
 #define CUDA_HELPER_H
 
 #include <sstream>

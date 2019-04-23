@@ -1,10 +1,11 @@
-#ifndef CUDNN_HELPER_H
+#if !defined(CUDNN_HELPER_H)
 #define CUDNN_HELPER_H
 
 #include <cudnn.h>
 #include <sstream>
 #include <memory>
 #include <vector>
+#include "cudnn_data_type.h"
 
 void throw_cudnn_err(cudnnStatus_t status, int line, const char *filename) {
     if (status != CUDNN_STATUS_SUCCESS) {

@@ -2,7 +2,7 @@
 // Created by slimakanzer on 29.03.19.
 //
 
-#ifndef BENCHMARK_TENSOR_H
+#if !defined(BENCHMARK_TENSOR_H)
 #define BENCHMARK_TENSOR_H
 
 #include <vector>
