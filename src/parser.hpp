@@ -79,7 +79,7 @@ namespace parser {
                 benchmark_row.stride_h = std::stoi(substr.c_str());
                 line = line.substr(index_end + 1, line.length());
 
-/*                index_end = line.find('\t');
+                index_end = line.find('\t');
                 substr = line.substr(0, index_end);
                 benchmark_row.out_w = std::stoi(substr.c_str());
                 line = line.substr(index_end + 1, line.length());
@@ -107,7 +107,7 @@ namespace parser {
                 index_end = line.find('\t');
                 substr = line.substr(0, index_end);
                 benchmark_row.filter_stride_h = std::stoi(substr.c_str());
-                line = line.substr(index_end + 1, line.length());*/
+                line = line.substr(index_end + 1, line.length());
 
                 benchmark_rows.push_back(benchmark_row);
             }
