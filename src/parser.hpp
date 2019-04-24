@@ -19,7 +19,7 @@ namespace parser {
 
         std::string line;
         std::string substr;
-        unsigned long index_end;
+        size_t index_end;
         while (std::getline(infile, line)) {
             if (!((line.rfind("//", 0) == 0) || (line.rfind("\t", 0) == 0))) {
                 benchmarkRow benchmark_row;
@@ -79,7 +79,7 @@ namespace parser {
                 benchmark_row.stride_h = std::stoi(substr.c_str());
                 line = line.substr(index_end + 1, line.length());
 
-                index_end = line.find('\t');
+/*                index_end = line.find('\t');
                 substr = line.substr(0, index_end);
                 benchmark_row.out_w = std::stoi(substr.c_str());
                 line = line.substr(index_end + 1, line.length());
@@ -107,7 +107,7 @@ namespace parser {
                 index_end = line.find('\t');
                 substr = line.substr(0, index_end);
                 benchmark_row.filter_stride_h = std::stoi(substr.c_str());
-                line = line.substr(index_end + 1, line.length());
+                line = line.substr(index_end + 1, line.length());*/
 
                 benchmark_rows.push_back(benchmark_row);
             }
