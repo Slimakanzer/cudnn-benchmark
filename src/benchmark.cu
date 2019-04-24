@@ -429,14 +429,6 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
             benchmarkInput.inputTensorFormat
     };
 
-    Format formatOutputTensor = {
-            benchmarkInput.n,
-            benchmarkInput.k,
-            benchmarkInput.out_h,
-            benchmarkInput.out_w,
-            benchmarkInput.outputTensorFormat
-    };
-
     Format formatFilter = {
             benchmarkInput.k,
             benchmarkInput.c,
@@ -446,7 +438,6 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
     };
 
     inputTensorDescriptor = new TensorDescriptor(formatInputTensor, dataType);
-    outputTensorDescriptor = new TensorDescriptor(formatOutputTensor, dataType);
     filterDescriptor = new FilterDescriptor(formatFilter, dataType);
 
 
@@ -471,6 +462,17 @@ void Benchmark<T>::benchmark(benchmarkRow &benchmarkInput, uint32_t num_repeats)
             &h,
             &w));
 
+    benchmarkInput.out_w = w;
+    benchmarkInput.out_h = h;
+
+    Format formatOutputTensor = {
+            benchmarkInput.n,
+            benchmarkInput.k,
+            benchmarkInput.out_h,
+            benchmarkInput.out_w,
+            benchmarkInput.outputTensorFormat
+    };
+    outputTensorDescriptor = new TensorDescriptor(formatOutputTensor, dataType);
     std::cerr << "OUT VALUES: " << h <<" " << w << " " << c << " " << n << std::endl;
 
     cudnnSetConvolutionMathType(convolutionDescriptor_, CUDNN_TENSOR_OP_MATH);
